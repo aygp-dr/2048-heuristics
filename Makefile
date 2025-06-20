@@ -97,6 +97,11 @@ run-strategy: ## Run with custom strategy (use STRATEGY env var)
 	@echo "$(GREEN)Running with strategy: $(STRATEGY)$(NC)"
 	@$(GUILE) -c "(load \"$(SCRIPT)\") (play-game '($(STRATEGY)) 100)"
 
+.PHONY: run-analysis
+run-analysis: ## Run performance analysis for all strategies
+	@echo "$(GREEN)Running strategy analysis...$(NC)"
+	@bin/run-analysis
+
 .PHONY: benchmark
 benchmark: build ## Run performance benchmark with multiple strategies
 	@echo "$(GREEN)Running benchmark suite...$(NC)"

@@ -1,0 +1,15 @@
+#!/bin/sh
+# Run distribution analysis with auto-compilation disabled
+
+# Ensure we're using Guile 3
+GUILE=guile3
+
+# Disable auto-compilation
+export GUILE_AUTO_COMPILE=0
+
+# Get the directory containing this script
+SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
+PROJ_DIR="$(dirname "$SCRIPT_DIR")"
+
+# Run the analysis
+cd "$PROJ_DIR" && exec $GUILE -L . src/distribution-analysis.scm
