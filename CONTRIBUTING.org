@@ -1,0 +1,112 @@
+#+TITLE: Contributing to 2048 Heuristics
+#+AUTHOR: AYGP-DR Team
+#+DATE: [2025-06-20]
+
+* Contributing to 2048 Heuristics
+
+Thank you for your interest in contributing to the 2048 Heuristics project! This document provides resources and guidelines to help you get started.
+
+** GNU Guile Resources
+
+*** Essential Documentation
+
+- [[https://www.gnu.org/software/guile/manual/][GNU Guile Reference Manual]] - Comprehensive documentation
+- [[https://www.gnu.org/software/guile/manual/html_node/Evaluation-Model.html][Guile's Evaluation Model]] - Understanding how Guile evaluates expressions
+- [[https://www.gnu.org/software/guile/manual/html_node/GDB-Support.html][GDB Support in Guile]] - Debugging Guile programs with GDB
+- [[https://www.gnu.org/software/guile/manual/html_node/SRFI-Support.html][SRFI Support]] - Information about Scheme Request for Implementation modules
+
+*** Key SRFIs Used in This Project
+
+- [[https://srfi.schemers.org/srfi-1/][SRFI-1]]: List Library - Advanced list operations
+- [[https://srfi.schemers.org/srfi-43/][SRFI-43]]: Vector Library - Vector operations
+- [[https://srfi.schemers.org/srfi-64/][SRFI-64]]: Test Suite - Unit testing framework
+
+*** Pattern Matching
+
+- [[https://www.gnu.org/software/guile/manual/html_node/Pattern-Matching.html][Pattern Matching in Guile]] - Information about the ice-9 match module used in this project
+
+** Project-Specific Features
+
+*** Board Representation
+
+The game board is represented as a 4x4 grid using vectors of vectors. The =board-ref= and =board-set!= functions provide access to individual cells.
+
+*** Game Mechanics
+
+- =move-board=: Handles directional moves (up, down, left, right)
+- =slide-row=: Implements the sliding and merging of tiles
+- =merge-adjacent=: Merges adjacent equal values
+- =transpose-board= and =rotate-board=: Helper functions for directional operations
+
+*** Heuristic Strategies
+
+The AI uses various heuristics to evaluate potential moves:
+
+- =count-empty=: Maximizes empty cells
+- =calculate-monotonicity=: Encourages ordered tile arrangements
+- =calculate-uniformity=: Groups similar values together
+- Greedy scoring: Maximizes immediate points
+
+*** Strategy Composition
+
+The =apply-strategy= function implements the core decision-making process by applying a sequence of heuristics to filter down the set of possible moves.
+
+** Development Setup
+
+*** Required Software
+
+- GNU Guile 3.0 or later
+- GDB for debugging
+- Git for version control
+
+*** Running Tests
+
+Tests are written using SRFI-64 and can be run with:
+
+#+begin_src shell
+guile3 tests/test-2048.scm
+#+end_src
+
+*** Debugging with GDB
+
+1. Run GDB with Guile:
+   #+begin_src shell
+   gdb guile3
+   #+end_src
+
+2. Set breakpoints:
+   #+begin_src
+   (gdb) break scm_apply
+   #+end_src
+
+3. Run the program:
+   #+begin_src
+   (gdb) run 2048-heuristics.scm
+   #+end_src
+
+4. Examine Scheme values:
+   #+begin_src
+   (gdb) scm val
+   #+end_src
+
+** Contribution Workflow
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Add tests for your changes
+5. Ensure all tests pass
+6. Submit a pull request
+
+** Coding Style Guidelines
+
+- Use 2-space indentation
+- Follow Scheme naming conventions (kebab-case)
+- Include docstrings for all functions
+- Keep functions small and focused
+- Use pattern matching where appropriate
+- Comment complex algorithms
+
+** License
+
+By contributing to this project, you agree that your contributions will be licensed under the same license as the project (GNU GPL v3.0).

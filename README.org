@@ -1,0 +1,115 @@
+#+TITLE: 2048 Heuristics
+#+AUTHOR: AYGP-DR Team
+#+DATE: [2025-06-20]
+
+[[https://img.shields.io/badge/status-draft-orange.svg]]
+[[https://img.shields.io/badge/license-GPL--3.0-blue.svg]]
+[[https://img.shields.io/badge/Guile-3.0+-green.svg]]
+
+* 2048 Heuristics
+
+A Scheme implementation of the 2048 game with AI heuristics based on "Composition of Basic Heuristics for the Game 2048" by Kohler, Migler & Khosmood (2019).
+
+** Features
+
+- Complete 2048 game logic
+- Multiple AI heuristics:
+  - Empty-cell maximization
+  - Monotonicity (tile ordering)
+  - Uniformity (similar tile grouping)
+  - Greedy scoring
+- Interactive terminal UI with color support
+- Configurable strategy composition
+- Comprehensive test suite
+- Debugging support with GDB
+
+** Requirements
+
+- GNU Guile 3.0+
+- SRFI modules (srfi-1, srfi-43, srfi-64 for tests)
+
+** Installation
+
+No installation required. Simply clone the repository:
+
+#+begin_src shell
+git clone https://github.com/yourusername/2048-heuristics.git
+cd 2048-heuristics
+#+end_src
+
+** Usage
+
+*** AI Demo
+
+Run the AI demo with:
+
+#+begin_src shell
+guile3 2048-heuristics.scm
+#+end_src
+
+This will play a sample game using the EMR (Empty, Monotonicity, Random) strategy.
+
+*** Interactive Game
+
+Play the game with an interactive terminal UI:
+
+#+begin_src shell
+guile3 2048-ui.scm
+#+end_src
+
+Controls:
+- ~w~ or ↑: Move Up
+- ~s~ or ↓: Move Down
+- ~a~ or ←: Move Left
+- ~d~ or →: Move Right
+- ~h~: Show help
+- ~q~: Quit game
+- ~ai~: Make a single AI move
+- ~auto [n]~: Let AI play n moves (defaults to 10)
+
+** Testing
+
+Run the tests with:
+
+#+begin_src shell
+guile3 tests/test-2048.scm
+#+end_src
+
+The test suite covers board operations, game mechanics, and heuristic evaluators using SRFI-64.
+
+** Debugging
+
+Debugging is supported using GDB:
+
+#+begin_src shell
+gdb guile3
+(gdb) run 2048-heuristics.scm
+#+end_src
+
+See the [[file:CONTRIBUTING.org][CONTRIBUTING.org]] file for detailed information on debugging with GDB.
+
+** Game Strategy
+
+The AI combines multiple heuristics in sequence to evaluate and select moves:
+
+1. *Empty-cell maximization* - Prioritize moves that result in more empty cells
+2. *Monotonicity* - Prefer moves that maintain a value gradient across the board
+3. *Uniformity* - Group similar values together for easier merging
+4. *Greedy scoring* - Maximize immediate score from merges
+
+** Implementation Details
+
+- Board representation: 4x4 grid as vector of vectors
+- Core game mechanics: sliding, merging, directional movement
+- Heuristic evaluation: multiple scoring strategies
+- Strategy composition: hierarchical decision-making
+
+For more details on the implementation, see the [[file:CONTRIBUTING.org][CONTRIBUTING.org]] file.
+
+** Contributing
+
+Contributions are welcome! Please read [[file:CONTRIBUTING.org][CONTRIBUTING.org]] for detailed information on the project structure, coding guidelines, and helpful resources for working with Guile Scheme.
+
+** License
+
+This project is licensed under the GNU General Public License v3.0 - see the LICENSE file for details.
