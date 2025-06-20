@@ -1,0 +1,37 @@
+#!/bin/sh
+# Generate plots from strategy analysis results
+
+# Ensure we're using Guile 3
+GUILE=guile3
+
+# Disable auto-compilation
+export GUILE_AUTO_COMPILE=0
+
+# Get the directory containing this script
+SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
+PROJ_DIR="$(dirname "$SCRIPT_DIR")"
+
+# Change to project directory
+cd "$PROJ_DIR"
+
+# Make sure gnuplot is installed
+if ! command -v gnuplot >/dev/null 2>&1; then
+  echo "Error: gnuplot is not installed. Please install it first."
+  exit 1
+fi
+
+# Generate data files from CSV results
+echo "Generating plot data..."
+$GUILE -L . src/generate-plot-data.scm
+
+# Generate plots with gnuplot
+echo "Generating plots..."
+gnuplot src/plot-results.gp
+
+# Check if the plot was created successfully
+if [ -f "strategy-comparison.png" ]; then
+  echo "Plot generated successfully: strategy-comparison.png"
+else
+  echo "Error: Failed to generate plot."
+  exit 1
+fi

@@ -102,6 +102,11 @@ run-analysis: ## Run performance analysis for all strategies
 	@echo "$(GREEN)Running strategy analysis...$(NC)"
 	@bin/run-analysis
 
+.PHONY: plot-results
+plot-results: ## Generate plots from analysis results
+	@echo "$(GREEN)Generating plots from analysis results...$(NC)"
+	@bin/generate-plots
+
 .PHONY: benchmark
 benchmark: build ## Run performance benchmark with multiple strategies
 	@echo "$(GREEN)Running benchmark suite...$(NC)"
