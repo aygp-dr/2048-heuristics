@@ -1,0 +1,317 @@
+#+TITLE: 2048 Heuristics Implementation
+#+AUTHOR: Based on Kohler, Migler & Khosmood (2019)
+#+PROPERTY: header-args :mkdirp yes
+
+* Project Overview
+
+This implements the basic heuristics for 2048 from the paper "Composition of Basic Heuristics for the Game 2048".
+
+** Key Findings
+- Best strategy: Empty → Monotonicity → Random (EMR)
+- Prioritizing empty spaces beats prioritizing board organization
+- Simple heuristics can achieve decent scores (~3947 average)
+
+* System Architecture
+
+#+BEGIN_SRC mermaid :file architecture.png
+graph TD
+    A[Game Board] --> B[Strategy Evaluator]
+    B --> C{Empty Heuristic}
+    B --> D{Monotonicity}
+    B --> E{Uniformity}
+    B --> F{Greedy}
+    
+    C --> G[Score Moves]
+    D --> G
+    E --> G
+    F --> G
+    
+    G --> H[Select Best Move]
+    H --> I[Apply Move]
+    I --> J[Add Random Tile]
+    J --> A
+    
+    K[Strategy Composition] --> B
+    K --> L[EMR: Empty->Mono->Random]
+    K --> M[MR: Mono->Random]
+    K --> N[Custom Strategies]
+#+END_SRC
+
+** Strategy Decision Flow
+
+#+BEGIN_SRC mermaid :file strategy-flow.png
+flowchart TD
+    Start([Board State]) --> GetMoves[Get Valid Moves]
+    GetMoves --> Check{Multiple<br/>Moves?}
+    
+    Check -->|No| SingleMove[Return Only Move]
+    Check -->|Yes| H1[Apply Heuristic 1<br/>e.g., Empty]
+    
+    H1 --> Score1[Score Each Move]
+    Score1 --> Filter1{Multiple<br/>Best Scores?}
+    
+    Filter1 -->|No| Best1[Return Best Move]
+    Filter1 -->|Yes| H2[Apply Heuristic 2<br/>e.g., Monotonicity]
+    
+    H2 --> Score2[Score Remaining Moves]
+    Score2 --> Filter2{Multiple<br/>Best Scores?}
+    
+    Filter2 -->|No| Best2[Return Best Move]
+    Filter2 -->|Yes| Terminal[Apply Terminal<br/>e.g., Random]
+    
+    Terminal --> Final[Return Random Choice]
+    
+    style H1 fill:#e1f5e1
+    style H2 fill:#e1f5e1
+    style Terminal fill:#ffe1e1
+#+END_SRC
+
+* Implementation
+
+** Main Game Code
+
+#+BEGIN_SRC scheme :tangle src/2048-heuristics.scm :mkdirp t
+#!/usr/bin/env guile
+!#
+
+;;; 2048 Game with Basic Heuristics
+;;; [Insert the full game code from the previous artifact here]
+#+END_SRC
+
+** Makefile
+
+#+BEGIN_SRC makefile :tangle Makefile
+# [Insert the full Makefile from above here]
+#+END_SRC
+
+** Benchmark Suite
+
+#+BEGIN_SRC scheme :tangle src/benchmark.scm :mkdirp t
+#!/usr/bin/env guile
+!#
+
+(load "2048-heuristics.scm")
+
+(define strategies
+  '(("EMR" . (empty monotonicity random))
+    ("GEMR" . (greedy empty monotonicity random))
+    ("MR" . (monotonicity random))
+    ("ER" . (empty random))
+    ("Random" . (random))))
+
+(define (run-benchmark runs-per-strategy max-moves)
+  (format #t "Running benchmark: ~a runs per strategy, ~a max moves~%~%"
+          runs-per-strategy max-moves)
+  
+  (for-each
+   (lambda (strategy-pair)
+     (let ((name (car strategy-pair))
+           (strategy (cdr strategy-pair)))
+       (format #t "Testing ~a strategy: ~a~%" name strategy)
+       (let ((scores '()))
+         (do ((i 0 (+ i 1))) ((= i runs-per-strategy))
+           (format #t "  Run ~a/~a... " (+ i 1) runs-per-strategy)
+           (force-output)
+           (let ((score (play-game strategy max-moves)))
+             (set! scores (cons score scores))
+             (format #t "Score: ~a~%" score)))
+         (let* ((total (apply + scores))
+                (avg (/ total runs-per-strategy))
+                (sorted (sort scores >))
+                (median (list-ref sorted (quotient runs-per-strategy 2))))
+           (format #t "  Average: ~a~%" avg)
+           (format #t "  Median: ~a~%" median)
+           (format #t "  Max: ~a~%" (car sorted))
+           (format #t "  Min: ~a~%~%" (car (reverse sorted)))))))
+   strategies))
+
+;; Run benchmark
+(run-benchmark 10 1000)
+#+END_SRC
+
+** Strategy Visualizer
+
+#+BEGIN_SRC scheme :tangle src/visualize-strategy.scm :mkdirp t
+#!/usr/bin/env guile
+!#
+
+(load "2048-heuristics.scm")
+(use-modules (ice-9 format))
+
+(define (visualize-decision board strategy)
+  "Show how strategy makes decisions"
+  (format #t "~%Current board:~%")
+  (print-board board)
+  
+  (let ((moves (get-valid-moves board)))
+    (format #t "Valid moves: ~a~%~%" moves)
+    
+    ;; Show evaluation for each heuristic
+    (for-each
+     (lambda (evaluator)
+       (format #t "~a scores:~%" evaluator)
+       (for-each
+        (lambda (move)
+          (let ((score (evaluate-move board move evaluator)))
+            (format #t "  ~a: ~a~%" move score)))
+        moves)
+       (newline))
+     strategy)
+    
+    ;; Show final decision
+    (let ((chosen (apply-strategy board strategy)))
+      (format #t "Strategy ~a chooses: ~a~%~%" strategy chosen)
+      chosen)))
+
+;; Demo
+(let ((board (make-board)))
+  (add-random-tile! board)
+  (add-random-tile! board)
+  (visualize-decision board '(empty monotonicity random)))
+#+END_SRC
+
+* Usage Examples
+
+** Basic Usage
+
+#+BEGIN_SRC sh :results output
+# Check dependencies
+make deps
+
+# Build the project
+make build
+
+# Run with default EMR strategy
+make run
+#+END_SRC
+
+** Custom Strategies
+
+#+BEGIN_SRC sh :results output
+# Run with monotonicity-only strategy
+make run-strategy STRATEGY="monotonicity random"
+
+# Run with greedy-first strategy  
+make run-strategy STRATEGY="greedy empty monotonicity random"
+#+END_SRC
+
+** Interactive Development
+
+#+BEGIN_SRC sh :results none
+# Start REPL with game loaded
+make repl
+
+# In REPL, try:
+# (play-game '(empty monotonicity random) 50)
+# (play-game '(random) 50)
+#+END_SRC
+
+* Development Workflow
+
+** File Watching
+#+BEGIN_SRC sh :results none
+# Auto-rebuild on changes
+make watch
+#+END_SRC
+
+** Debugging
+#+BEGIN_SRC sh :results output
+# Run with debug output
+make debug
+
+# Profile performance
+make profile
+#+END_SRC
+
+* Results Analysis
+
+** Strategy Comparison
+
+| Strategy | Mean Score | Std Dev | Description |
+|----------+------------+---------+-------------|
+| EMR      |       3947 |    1883 | Empty → Monotonicity → Random |
+| GEMR     |       3946 |    1857 | Greedy → Empty → Monotonicity → Random |
+| MR       |       3177 |    1196 | Monotonicity → Random |
+| Random   |       1093 |     539 | Random only |
+
+** Key Insights
+
+1. Empty cells are the most important factor
+2. Monotonicity helps as a secondary heuristic
+3. Greedy (immediate score) doesn't help much
+4. Pure random performs poorly
+
+* Future Improvements
+
+- [ ] Add lookahead search (1-2 moves)
+- [ ] Implement corner preference heuristic
+- [ ] Add pattern matching for common positions
+- [ ] Create training mode for human players
+- [ ] Add difficulty levels based on strategy
+
+* Org-Babel Integration
+
+** Interactive Development in Org-mode
+
+*** Load the Game
+#+BEGIN_SRC scheme :session *2048* :results silent
+(load "src/2048-heuristics.scm")
+#+END_SRC
+
+*** Test Board Creation
+#+BEGIN_SRC scheme :session *2048* :results output
+(let ((board (make-board)))
+  (add-random-tile! board)
+  (add-random-tile! board)
+  (print-board board)
+  (format #t "Empty cells: ~a~%" (count-empty board))
+  (format #t "Monotonicity: ~a~%" (calculate-monotonicity board)))
+#+END_SRC
+
+*** Compare Strategies Interactively
+#+BEGIN_SRC scheme :session *2048* :results output :var moves=20
+(define (quick-test strategy moves)
+  (format #t "Testing ~a for ~a moves...~%" strategy moves)
+  (let ((board (make-board)))
+    (add-random-tile! board)
+    (add-random-tile! board)
+    (let loop ((m 0) (score 0))
+      (if (or (>= m moves) (null? (get-valid-moves board)))
+          (format #t "Final score: ~a~%" score)
+          (let ((move (apply-strategy board strategy)))
+            (let-values (((new-board move-score) (move-board board move)))
+              (set! board new-board)
+              (add-random-tile! board)
+              (loop (+ m 1) (+ score move-score))))))))
+
+(quick-test '(empty monotonicity random) moves)
+(quick-test '(monotonicity random) moves)
+(quick-test '(random) moves)
+#+END_SRC
+
+*** Visualize Board State
+#+BEGIN_SRC scheme :session *2048* :results output :exports both
+(define test-board
+  (vector (vector 2 4 8 16)
+          (vector 0 2 4 8)
+          (vector 0 0 2 4)
+          (vector 0 0 0 2)))
+
+(print-board test-board)
+(format #t "~%Heuristic Scores:~%")
+(format #t "  Empty cells: ~a~%" (count-empty test-board))
+(format #t "  Monotonicity: ~a~%" (calculate-monotonicity test-board))
+(format #t "  Uniformity: ~a~%" (calculate-uniformity test-board))
+#+END_SRC
+
+** Tangle and Build
+#+BEGIN_SRC sh :dir . :results output
+# Tangle all source blocks
+emacs --batch -l org --eval "(org-babel-tangle)"
+
+# Build the project
+make clean build
+
+# Run tests
+make test
+#+END_SRC

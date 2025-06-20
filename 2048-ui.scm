@@ -13,6 +13,12 @@
 ;; Load main game logic
 (load "2048-heuristics.scm")
 
+;; Import 2048 game functionality
+(define demo (lambda () #f))
+
+;; Load the main program code
+(load "2048-heuristics.scm")
+
 ;; Remove the auto-run demo
 (set! demo (lambda () #f))
 
