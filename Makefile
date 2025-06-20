@@ -75,17 +75,17 @@ $(COMPILED): $(SCRIPT)
 run: ## Run the 2048 simulator
 	@if [ -f $(COMPILED) ] && [ -s $(COMPILED) ]; then \
 		echo "$(GREEN)Running compiled version...$(NC)"; \
-		$(GUILE) -c "(load-compiled \"$(COMPILED)\")"; \
+		GUILE_AUTO_COMPILE=0 $(GUILE) -c "(load-compiled \"$(COMPILED)\")"; \
 	else \
 		echo "$(GREEN)Running interpreted version...$(NC)"; \
-		$(GUILE) $(SCRIPT); \
+		GUILE_AUTO_COMPILE=0 $(GUILE) $(SCRIPT); \
 	fi
 
 .PHONY: run-interactive
 run-interactive: ## Run Guile REPL with the game loaded
 	@echo "$(GREEN)Starting interactive REPL...$(NC)"
 	@echo "Try: (play-game '(empty monotonicity random) 50)"
-	@$(GUILE) -l $(SCRIPT) --
+	@GUILE_AUTO_COMPILE=0 $(GUILE) -l $(SCRIPT) --
 
 .PHONY: run-strategy
 run-strategy: ## Run with custom strategy (use STRATEGY env var)
@@ -171,12 +171,7 @@ watch: ## Watch for changes and rebuild
 .PHONY: debug
 debug: ## Run with debug output
 	@echo "$(GREEN)Running in debug mode...$(NC)"
-	@GUILE_LOAD_COMPILED_PATH="" $(GUILE) \
-		--debug \
-		--no-auto-compile \
-		-l $(SCRIPT) \
-		-c "(set! *random-state* (random-state-from-platform)) \
-			(play-game '(empty monotonicity random) 10)"
+	@bin/debug-2048
 
 .PHONY: profile
 profile: build ## Run with profiling enabled

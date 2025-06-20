@@ -44,7 +44,11 @@ cd 2048-heuristics
 Run the AI demo with:
 
 #+begin_src shell
-guile3 2048-heuristics.scm
+# Using the convenience script (recommended)
+bin/run-2048
+
+# Or directly with Guile
+GUILE_AUTO_COMPILE=0 guile3 2048-heuristics.scm
 #+end_src
 
 This will play a sample game using the EMR (Empty, Monotonicity, Random) strategy.
@@ -54,7 +58,11 @@ This will play a sample game using the EMR (Empty, Monotonicity, Random) strateg
 Play the game with an interactive terminal UI:
 
 #+begin_src shell
-guile3 2048-ui.scm
+# Using the convenience script (recommended)
+bin/run-2048-ui
+
+# Or directly with Guile
+GUILE_AUTO_COMPILE=0 guile3 2048-ui.scm
 #+end_src
 
 Controls:
@@ -79,14 +87,32 @@ The test suite covers board operations, game mechanics, and heuristic evaluators
 
 ** Debugging
 
-Debugging is supported using GDB:
+Debugging is supported using GDB with a convenient script:
 
 #+begin_src shell
-gdb guile3
-(gdb) run 2048-heuristics.scm
+# Debug the main game
+bin/debug-2048
+
+# Debug the UI version
+bin/debug-2048 ui
 #+end_src
 
-See the [[file:CONTRIBUTING.org][CONTRIBUTING.org]] file for detailed information on debugging with GDB.
+Or manually:
+
+#+begin_src shell
+gdb --args guile3 --no-auto-compile -L . 2048-heuristics.scm
+#+end_src
+
+Useful GDB commands for Guile debugging:
+
+#+begin_src
+(gdb) break scm_apply             # Break on Scheme function application
+(gdb) break apply-strategy         # Break on specific function
+(gdb) print scm_from_utf8_string("hello")  # Create a Scheme string
+(gdb) call scm_display($1, scm_current_output_port())  # Display a Scheme value
+#+end_src
+
+See the [[file:CONTRIBUTING.org][CONTRIBUTING.org]] file for more detailed information on debugging with GDB.
 
 ** Game Strategy
 
