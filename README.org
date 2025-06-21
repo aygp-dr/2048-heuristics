@@ -123,6 +123,23 @@ The AI combines multiple heuristics in sequence to evaluate and select moves:
 3. *Uniformity* - Group similar values together for easier merging
 4. *Greedy scoring* - Maximize immediate score from merges
 
+*** Strategy Analysis
+
+[[file:images/strategy-comparison.png]]
+
+The EMR (Empty → Monotonicity → Random) strategy performs best, achieving higher scores and reaching larger tiles like 256 and 512 more consistently. Analysis shows:
+
+- EMR averages ~1340 points (vs. ~430 for Random)
+- 67% of EMR games reach the 256 tile (vs. 6% for Random)
+- 16% of EMR games reach the 512 tile
+
+Run your own analysis with:
+
+#+begin_src shell
+make run-analysis   # Run statistical analysis
+make plot-results   # Generate visualizations
+#+end_src
+
 ** Implementation Details
 
 - Board representation: 4x4 grid as vector of vectors
