@@ -1,0 +1,466 @@
+#+TITLE: 2048 Strategy Analysis
+#+AUTHOR: AYGP-DR Team
+#+DATE: [2025-06-20]
+#+PROPERTY: header-args:scheme :prologue "(add-to-load-path \"..\")\n(load \"2048-heuristics.scm\")" :results value
+#+PROPERTY: header-args :mkdirp yes :exports both
+#+STARTUP: showall
+
+* 2048 Strategy Analysis
+
+This notebook analyzes the performance of different strategies for playing the 2048 game. We'll focus on the composition of basic heuristics as described in the paper by Kohler, Migler & Khosmood (2019).
+
+** Key Heuristics
+
+1. *Empty Cells (E)*: Prioritize moves that result in more empty cells
+2. *Monotonicity (M)*: Prioritize moves that maintain a value gradient across the board
+3. *Uniformity (U)*: Prioritize moves that group similar values together
+4. *Greedy (G)*: Prioritize moves that maximize immediate score
+5. *Random (R)*: Used as a terminal strategy when multiple moves have equal scores
+
+The key finding is that the EMR strategy (Empty ’ Monotonicity ’ Random) tends to perform best.
+
+* Setup
+
+First, we'll set up our environment by loading the necessary libraries.
+
+#+begin_src scheme
+;; Setup environment and required modules
+(use-modules (ice-9 format)
+             (ice-9 pretty-print)
+             (srfi srfi-1))  ; For list operations
+
+;; Check if game functions are loaded correctly
+(format #t "Board creation function available: ~a~%" (defined? 'make-board))
+(format #t "Strategy application function available: ~a~%" (defined? 'apply-strategy))
+#+end_src
+
+* Data Analysis Functions
+
+Let's define some functions to analyze the performance of different strategies.
+
+#+begin_src scheme
+;; Function to play a single game with the given strategy
+(define (play-single-game strategy max-moves)
+  "Play a single game with the given strategy and return statistics"
+  (let ((board (make-board))
+        (score 0)
+        (moves 0))
+    
+    ;; Initial tiles
+    (add-random-tile! board)
+    (add-random-tile! board)
+    
+    (let loop ()
+      (if (and (< moves max-moves) 
+               (not (null? (get-valid-moves board))))
+          (let ((move (apply-strategy board strategy)))
+            (if move
+                (begin
+                  (let-values (((new-board move-score) (move-board board move)))
+                    (set! board new-board)
+                    (set! score (+ score move-score))
+                    (set! moves (+ moves 1)))
+                  (add-random-tile! board)
+                  (loop))
+                (list score moves (find-highest-tile board))))
+          (list score moves (find-highest-tile board))))))
+
+;; Function to find the highest tile on the board
+(define (find-highest-tile board)
+  "Find the highest tile value on the board"
+  (let ((highest 0))
+    (vector-for-each
+     (lambda (i row)
+       (vector-for-each
+        (lambda (j val)
+          (when (> val highest)
+            (set! highest val)))
+        row))
+     board)
+    highest))
+
+;; Function to play multiple games and collect statistics
+(define (analyze-strategy strategy num-games max-moves)
+  "Play multiple games with the given strategy and return statistics"
+  (let ((scores '())
+        (moves-counts '())
+        (highest-tiles '()))
+    
+    (format #t "Running ~a games with strategy ~a (max ~a moves each)...~%" 
+            num-games strategy max-moves)
+    
+    (do ((i 0 (+ i 1))) ((= i num-games))
+      (when (zero? (modulo i 5))
+        (format #t "Game ~a/~a...~%" (+ i 1) num-games))
+      
+      (let ((result (play-single-game strategy max-moves)))
+        (set! scores (cons (car result) scores))
+        (set! moves-counts (cons (cadr result) moves-counts))
+        (set! highest-tiles (cons (caddr result) highest-tiles))))
+    
+    ;; Calculate statistics
+    (let* ((avg-score (/ (apply + scores) num-games))
+           (avg-moves (/ (apply + moves-counts) num-games))
+           (max-score (apply max scores))
+           (min-score (apply min scores))
+           (std-dev-score (standard-deviation scores avg-score))
+           (median-score (list-ref (sort scores <) (quotient num-games 2)))
+           (tile-counts (count-values highest-tiles)))
+      
+      ;; Format the output
+      (format #t "~%Results for strategy: ~a~%" strategy)
+      (format #t "================================================~%")
+      (format #t "Games played:          ~a~%" num-games)
+      (format #t "Average score:         ~a~%" (inexact->exact (round avg-score)))
+      (format #t "Score standard dev:    ~a~%" (inexact->exact (round std-dev-score)))
+      (format #t "Minimum score:         ~a~%" min-score)
+      (format #t "Maximum score:         ~a~%" max-score)
+      (format #t "Median score:          ~a~%" median-score)
+      (format #t "Average moves:         ~a~%" (inexact->exact (round avg-moves)))
+      
+      ;; Display highest tile distribution
+      (format #t "~%Highest tile distribution:~%")
+      (format #t "Tile  | Count | Percentage~%")
+      (format #t "------+-------+-----------~%")
+      
+      (for-each
+       (lambda (pair)
+         (let ((tile (car pair))
+               (count (cdr pair)))
+           (format #t "~5d | ~5d | ~8,2f%%~%" 
+                   tile count (* 100.0 (/ count num-games)))))
+       (sort tile-counts (lambda (a b) (< (car a) (car b)))))
+      
+      ;; Return statistics for further analysis
+      (list avg-score avg-moves max-score std-dev-score tile-counts))))
+
+;; Helper function to calculate standard deviation
+(define (standard-deviation values mean)
+  "Calculate standard deviation"
+  (let ((variance (/ (apply + (map (lambda (x) (expt (- x mean) 2)) values))
+                   (length values))))
+    (sqrt variance)))
+
+;; Helper function to count occurrences of each value
+(define (count-values values)
+  "Count occurrences of each value in the list"
+  (let ((counts (make-hash-table)))
+    (for-each
+     (lambda (val)
+       (hash-set! counts val
+                 (+ 1 (hash-ref counts val 0))))
+     values)
+    (hash-map->list cons counts)))
+#+end_src
+
+* Quick Strategy Test
+
+Let's test a few strategies with a small number of games to verify our functions.
+
+#+begin_src scheme
+;; Test a few strategies with a small number of games
+(define (quick-test)
+  ;; EMR strategy - generally considered best
+  (format #t "Testing EMR strategy (small sample)~%")
+  (analyze-strategy '(empty monotonicity random) 5 100)
+  
+  ;; MR strategy - without empty cells consideration
+  (format #t "~%Testing MR strategy (small sample)~%")
+  (analyze-strategy '(monotonicity random) 5 100)
+  
+  ;; Random strategy - baseline
+  (format #t "~%Testing Random strategy (small sample)~%")
+  (analyze-strategy '(random) 5 100))
+
+;; Run the quick test
+(quick-test)
+#+end_src
+
+* Strategy Comparison
+
+Now, let's compare multiple strategies more systematically. We'll run more games for a more accurate comparison, but still keep it small enough to run in a reasonable time.
+
+#+begin_src scheme :eval no-export
+;; Run a more comprehensive comparison (takes longer)
+(define (compare-strategies)
+  ;; List of strategies to compare
+  (let ((strategies (list 
+                     (cons "EMR" '(empty monotonicity random))
+                     (cons "GEMR" '(greedy empty monotonicity random))
+                     (cons "MR" '(monotonicity random))
+                     (cons "ER" '(empty random))
+                     (cons "Random" '(random)))))
+    
+    ;; Results list
+    (let ((results '()))
+      
+      ;; Run analysis for each strategy
+      (for-each
+       (lambda (strategy-pair)
+         (format #t "~%~%Analyzing strategy: ~a~%" (car strategy-pair))
+         (let ((stats (analyze-strategy (cdr strategy-pair) 20 200)))
+           (set! results (cons (cons (car strategy-pair) stats) results))))
+       strategies)
+      
+      ;; Summary comparison
+      (format #t "~%~%Strategy Comparison Summary:~%")
+      (format #t "==========================================================~%")
+      (format #t "Strategy | Avg Score | Avg Moves | Max Score | Top Tile %%~%")
+      (format #t "---------+-----------+-----------+-----------+------------~%")
+      
+      (for-each
+       (lambda (result)
+         (let* ((name (car result))
+                (stats (cdr result))
+                (avg-score (car stats))
+                (avg-moves (cadr stats))
+                (max-score (caddr stats))
+                (top-tiles (car (cddddr stats)))
+                (best-tile (apply max (map car top-tiles)))
+                (best-tile-pct (* 100.0 (/ (cdr (assoc best-tile top-tiles))
+                                          20))))
+           (format #t "~8a | ~9d | ~9d | ~9d | ~4d: ~4,1f%%~%" 
+                   name 
+                   (inexact->exact (round avg-score))
+                   (inexact->exact (round avg-moves))
+                   max-score
+                   best-tile
+                   best-tile-pct)))
+       (reverse results)))))
+
+;; Run the comparison (commented out by default as it takes time)
+;; Uncomment the line below to run it
+;; (compare-strategies)
+#+end_src
+
+* Creating Simple Visualizations
+
+We can create simple text-based visualizations to compare the strategies.
+
+#+begin_src scheme
+;; Simple ASCII bar chart
+(define (ascii-bar-chart data max-width)
+  "Create a simple ASCII bar chart from alist data"
+  (let ((max-value (apply max (map cdr data))))
+    (for-each
+     (lambda (pair)
+       (let* ((label (car pair))
+              (value (cdr pair))
+              (width (inexact->exact (round (* max-width (/ value max-value)))))
+              (bar (make-string width #\#)))
+         (format #t "~10a | ~5d | ~a~%" label value bar)))
+     data)))
+
+;; Example data for visualization
+(define example-data
+  '(("EMR" . 1300)
+    ("GEMR" . 1250)
+    ("MR" . 350)
+    ("ER" . 750)
+    ("Random" . 400)))
+
+(format #t "Sample Score Comparison:~%")
+(format #t "-------------------------~%")
+(format #t "Strategy   | Score | Chart~%")
+(ascii-bar-chart example-data 40)
+#+end_src
+
+* Single Game Analysis
+
+Let's analyze a single game in detail to better understand how the EMR strategy works.
+
+#+begin_src scheme
+;; Function to play and analyze a single game step by step
+(define (analyze-single-game-steps strategy max-steps)
+  "Play a single game and show each step of the decision-making process"
+  (let ((board (make-board))
+        (score 0)
+        (moves 0))
+    
+    ;; Initial tiles
+    (add-random-tile! board)
+    (add-random-tile! board)
+    
+    (format #t "Initial board:~%")
+    (print-board board)
+    
+    (let loop ()
+      (if (and (< moves max-steps)
+               (not (null? (get-valid-moves board))))
+          (begin
+            ;; Display current state
+            (format #t "Move #~a, Score: ~a~%" moves score)
+            
+            ;; Analyze move options
+            (let ((valid-moves (get-valid-moves board)))
+              (format #t "Valid moves: ~a~%" valid-moves)
+              
+              ;; Evaluate each move with each heuristic
+              (for-each
+               (lambda (evaluator)
+                 (format #t "~%~a scores:~%" evaluator)
+                 (for-each
+                  (lambda (move)
+                    (let ((score (evaluate-move board move evaluator)))
+                      (format #t "  ~a: ~a~%" move score)))
+                  valid-moves))
+               strategy)
+              
+              ;; Apply the chosen move
+              (let ((move (apply-strategy board strategy)))
+                (format #t "~%Strategy chooses: ~a~%~%" move)
+                
+                (let-values (((new-board move-score) (move-board board move)))
+                  (set! board new-board)
+                  (set! score (+ score move-score))
+                  (set! moves (+ moves 1)))
+                
+                (add-random-tile! board)
+                (print-board board)
+                (loop))))
+          (begin
+            (format #t "Final board after ~a moves, score: ~a~%" moves score)
+            (print-board board)
+            (list score moves (find-highest-tile board)))))))
+
+;; Run a short analysis of EMR strategy
+(analyze-single-game-steps '(empty monotonicity random) 5)
+#+end_src
+
+* Student Exercise
+
+Now it's your turn to analyze the strategies and draw conclusions. Here's a simple template you can use to run your own experiments:
+
+#+begin_src scheme :eval no-export
+;; Student exercise - test your own strategy
+(define (test-my-strategy)
+  ;; Define your own strategy here
+  (define my-strategy '(empty uniformity monotonicity random))
+  
+  ;; Run analysis
+  (format #t "Testing my custom strategy: ~a~%" my-strategy)
+  (analyze-strategy my-strategy 10 200)
+  
+  ;; Compare with standard EMR
+  (format #t "~%Comparing with standard EMR strategy:~%")
+  (analyze-strategy '(empty monotonicity random) 10 200))
+
+;; Uncomment to run your test
+;; (test-my-strategy)
+#+end_src
+
+* Analysis Questions
+
+Complete the following tasks to analyze the strategies:
+
+1. Based on your experiments, which strategy performs the best overall? Why?
+2. How does the EMR strategy compare to others in terms of:
+   - Final score
+   - Number of moves
+   - Highest tile achieved
+3. What do you think makes the empty-cell heuristic so important?
+4. How would you create a new strategy that might perform even better?
+
+* Advanced Exercise: Implement a New Heuristic
+
+If you're feeling ambitious, try implementing your own heuristic evaluator! Here's a template:
+
+#+begin_src scheme :eval no-export
+;; Add this to the evaluate-move function in the main code
+(define (calculate-corner-preference board)
+  "Calculate how well the highest values are in the corners"
+  (let ((score 0)
+        (corners '((0 . 0) (0 . 3) (3 . 0) (3 . 3))))
+    
+    ;; Add your implementation here
+    ;; Higher score should mean better board state
+    
+    score))
+
+;; Then add your heuristic to the evaluate-move function:
+;; ((corner) (calculate-corner-preference new-board))
+#+end_src
+
+Document your implementation and results here.
+
+* Integration with Gnuplot
+
+We can use Gnuplot for more sophisticated visualizations. Here's how to create a plot script from Org mode:
+
+#+begin_src scheme :results silent :tangle ../src/gen-plot-data.scm
+;; Generate data for gnuplot visualization
+(define (generate-plot-data)
+  ;; Run strategies and collect results
+  (let ((strategies '(("EMR" empty monotonicity random)
+                     ("MR" monotonicity random)
+                     ("ER" empty random)
+                     ("GEMR" greedy empty monotonicity random)
+                     ("Random" random))))
+    
+    ;; Generate data file
+    (with-output-to-file "../plot-data.dat"
+      (lambda ()
+        ;; Header
+        (format #t "# Strategy Score Moves Efficiency HighestTile~%")
+        
+        ;; Run each strategy
+        (for-each
+         (lambda (strat)
+           (let* ((name (car strat))
+                  (strategy (cdr strat))
+                  (result (play-single-game strategy 200))
+                  (score (car result))
+                  (moves (cadr result))
+                  (highest (caddr result))
+                  (efficiency (/ score moves)))
+             (format #t "~a ~a ~a ~a ~a~%" 
+                     name score moves efficiency highest)))
+         strategies)))))
+
+;; Generate data when this file is executed directly
+(generate-plot-data)
+#+end_src
+
+#+begin_src gnuplot :tangle ../src/plot-simple.gp :results silent
+# Simple gnuplot script for 2048 strategy visualization
+
+set terminal png size 800,600
+set output "strategy-comparison.png"
+
+set title "2048 Strategy Comparison"
+set style data histogram
+set style histogram cluster gap 1
+set style fill solid 0.5 border
+set boxwidth 0.9
+
+set xtics rotate by -45
+set key top left
+set grid y
+
+set ylabel "Score"
+plot "plot-data.dat" using 2:xtic(1) title "Score"
+#+end_src
+
+#+begin_src sh :results output :exports both
+# Check if gnuplot is installed
+which gnuplot || echo "gnuplot not installed"
+
+# Run the plotting only if previous files exist
+if [ -f "../src/gen-plot-data.scm" ] && [ -f "../src/plot-simple.gp" ]; then
+  cd .. && guile3 src/gen-plot-data.scm && gnuplot src/plot-simple.gp && \
+  echo "Plot generated: strategy-comparison.png"
+else
+  echo "Plot files not generated yet. Run the earlier code blocks first."
+fi
+#+end_src
+
+* Conclusion
+
+In this notebook, we've analyzed different strategies for playing the 2048 game, focusing on the composition of basic heuristics. The EMR (Empty, Monotonicity, Random) strategy generally performs best, achieving higher scores and reaching larger tiles.
+
+Key insights:
+1. Prioritizing empty cells is crucial for maintaining flexibility
+2. Monotonicity helps organize the board for efficient merging
+3. Combining multiple heuristics leads to better performance than any single approach
+
+This analysis demonstrates how simple heuristics can be composed to create effective strategies for solving complex problems.
