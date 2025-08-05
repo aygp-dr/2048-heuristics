@@ -1,0 +1,391 @@
+%%%% Starting test 2048-heuristics
+Group begin: 2048-heuristics
+Group begin: board-creation
+Test begin:
+  test-name: "Board is a vector"
+  source-file: "/home/dsp-dr/ghq/github.com/aygp-dr/2048-heuristics/tests/test-2048.scm"
+  source-line: 26
+  source-form: (test-assert "Board is a vector" (vector? board))
+Test end:
+  result-kind: pass
+  actual-value: #t
+Test begin:
+  test-name: "Board has 4 rows"
+  source-file: "/home/dsp-dr/ghq/github.com/aygp-dr/2048-heuristics/tests/test-2048.scm"
+  source-line: 27
+  source-form: (test-eqv "Board has 4 rows" 4 (vector-length board))
+Test end:
+  result-kind: pass
+  actual-value: 4
+  expected-value: 4
+Test begin:
+  test-name: "Each row is a vector"
+  source-file: "/home/dsp-dr/ghq/github.com/aygp-dr/2048-heuristics/tests/test-2048.scm"
+  source-line: 28
+  source-form: (test-assert "Each row is a vector" (vector-every vector? board))
+Test end:
+  result-kind: pass
+  actual-value: #t
+Test begin:
+  test-name: "Each row has 4 columns"
+  source-file: "/home/dsp-dr/ghq/github.com/aygp-dr/2048-heuristics/tests/test-2048.scm"
+  source-line: 30
+  source-form: (test-eqv "Each row has 4 columns" 4 (vector-length (vector-ref board 0)))
+Test end:
+  result-kind: pass
+  actual-value: 4
+  expected-value: 4
+Test begin:
+  test-name: "All cells are initially 0"
+  source-file: "/home/dsp-dr/ghq/github.com/aygp-dr/2048-heuristics/tests/test-2048.scm"
+  source-line: 32
+  source-form: (test-assert "All cells are initially 0" (let ((all-zero #t)) (vector-for-each (lambda (i row) (unless (vector-every zero? row) (set! all-zero #f))) board) all-zero))
+Test end:
+  result-kind: pass
+  actual-value: #t
+Group end: board-creation
+Group begin: board-access
+Test begin:
+  test-name: "Can set and get cell value"
+  source-file: "/home/dsp-dr/ghq/github.com/aygp-dr/2048-heuristics/tests/test-2048.scm"
+  source-line: 44
+  source-form: (test-eqv "Can set and get cell value" 8 (board-ref board 1 2))
+Test end:
+  result-kind: pass
+  actual-value: 8
+  expected-value: 8
+Test begin:
+  test-name: "Other cells remain 0"
+  source-file: "/home/dsp-dr/ghq/github.com/aygp-dr/2048-heuristics/tests/test-2048.scm"
+  source-line: 45
+  source-form: (test-eqv "Other cells remain 0" 0 (board-ref board 0 0))
+Test end:
+  result-kind: pass
+  actual-value: 0
+  expected-value: 0
+Group end: board-access
+Group begin: board-copy
+Test begin:
+  test-name: "Copied board is equal"
+  source-file: "/home/dsp-dr/ghq/github.com/aygp-dr/2048-heuristics/tests/test-2048.scm"
+  source-line: 52
+  source-form: (test-assert "Copied board is equal" (board-equal? board copy-board))
+Test end:
+  result-kind: pass
+  actual-value: #t
+Test begin:
+  test-name: "But not the same object"
+  source-file: "/home/dsp-dr/ghq/github.com/aygp-dr/2048-heuristics/tests/test-2048.scm"
+  source-line: 53
+  source-form: (test-assert "But not the same object" (not (eq? board copy-board)))
+Test end:
+  result-kind: pass
+  actual-value: #t
+Test begin:
+  test-name: "Changes to copy don't affect original"
+  source-file: "/home/dsp-dr/ghq/github.com/aygp-dr/2048-heuristics/tests/test-2048.scm"
+  source-line: 55
+  source-form: (test-assert "Changes to copy don't affect original" (zero? (board-ref board 0 0)))
+Test end:
+  result-kind: pass
+  actual-value: #t
+Group end: board-copy
+Group begin: slide-row
+Test begin:
+  test-name: "Slide left merges adjacent"
+  source-file: "/home/dsp-dr/ghq/github.com/aygp-dr/2048-heuristics/tests/test-2048.scm"
+  source-line: 63
+  source-form: (test-equal "Slide left merges adjacent" #(4 0 0 0) (slide-row row (quote left)))
+Test end:
+  result-kind: pass
+  actual-value: #(4 0 0 0)
+  expected-value: #(4 0 0 0)
+Test begin:
+  test-name: "Slide right merges adjacent"
+  source-file: "/home/dsp-dr/ghq/github.com/aygp-dr/2048-heuristics/tests/test-2048.scm"
+  source-line: 64
+  source-form: (test-equal "Slide right merges adjacent" #(0 0 0 4) (slide-row row (quote right)))
+Test end:
+  result-kind: pass
+  actual-value: #(0 0 0 4)
+  expected-value: #(0 0 0 4)
+Test begin:
+  test-name: "Slide left no merge"
+  source-file: "/home/dsp-dr/ghq/github.com/aygp-dr/2048-heuristics/tests/test-2048.scm"
+  source-line: 67
+  source-form: (test-equal "Slide left no merge" #(2 4 0 0) (slide-row row (quote left)))
+Test end:
+  result-kind: pass
+  actual-value: #(2 4 0 0)
+  expected-value: #(2 4 0 0)
+Test begin:
+  test-name: "Slide right no merge"
+  source-file: "/home/dsp-dr/ghq/github.com/aygp-dr/2048-heuristics/tests/test-2048.scm"
+  source-line: 68
+  source-form: (test-equal "Slide right no merge" #(0 0 2 4) (slide-row row (quote right)))
+Test end:
+  result-kind: pass
+  actual-value: #(0 0 2 4)
+  expected-value: #(0 0 2 4)
+Group end: slide-row
+Group begin: merge-adjacent
+Test begin:
+  test-name: "Empty list"
+  source-file: "/home/dsp-dr/ghq/github.com/aygp-dr/2048-heuristics/tests/test-2048.scm"
+  source-line: 71
+  source-form: (test-equal "Empty list" (quote ()) (merge-adjacent (quote ())))
+Test end:
+  result-kind: pass
+  actual-value: ()
+  expected-value: ()
+Test begin:
+  test-name: "Single value"
+  source-file: "/home/dsp-dr/ghq/github.com/aygp-dr/2048-heuristics/tests/test-2048.scm"
+  source-line: 72
+  source-form: (test-equal "Single value" (quote (2)) (merge-adjacent (quote (2))))
+Test end:
+  result-kind: pass
+  actual-value: (2)
+  expected-value: (2)
+Test begin:
+  test-name: "Equal values"
+  source-file: "/home/dsp-dr/ghq/github.com/aygp-dr/2048-heuristics/tests/test-2048.scm"
+  source-line: 73
+  source-form: (test-equal "Equal values" (quote (4)) (merge-adjacent (quote (2 2))))
+Test end:
+  result-kind: pass
+  actual-value: (4)
+  expected-value: (4)
+Test begin:
+  test-name: "Non-equal values"
+  source-file: "/home/dsp-dr/ghq/github.com/aygp-dr/2048-heuristics/tests/test-2048.scm"
+  source-line: 74
+  source-form: (test-equal "Non-equal values" (quote (2 4)) (merge-adjacent (quote (2 4))))
+Test end:
+  result-kind: pass
+  actual-value: (2 4)
+  expected-value: (2 4)
+Test begin:
+  test-name: "Multiple pairs"
+  source-file: "/home/dsp-dr/ghq/github.com/aygp-dr/2048-heuristics/tests/test-2048.scm"
+  source-line: 75
+  source-form: (test-equal "Multiple pairs" (quote (4 8)) (merge-adjacent (quote (2 2 4 4))))
+Test end:
+  result-kind: pass
+  actual-value: (4 8)
+  expected-value: (4 8)
+Test begin:
+  test-name: "Mixed values"
+  source-file: "/home/dsp-dr/ghq/github.com/aygp-dr/2048-heuristics/tests/test-2048.scm"
+  source-line: 76
+  source-form: (test-equal "Mixed values" (quote (2 8 4)) (merge-adjacent (quote (2 4 4 4))))
+Test end:
+  result-kind: pass
+  actual-value: (2 8 4)
+  expected-value: (2 8 4)
+Group end: merge-adjacent
+Group begin: move-board
+Test begin:
+  test-name: "Left move shifts values"
+  source-file: "/home/dsp-dr/ghq/github.com/aygp-dr/2048-heuristics/tests/test-2048.scm"
+  source-line: 90
+  source-form: (test-eqv "Left move shifts values" 2 (board-ref new-board 0 0))
+Test end:
+  result-kind: pass
+  actual-value: 2
+  expected-value: 2
+Test begin:
+  test-name: "Left move shifts values"
+  source-file: "/home/dsp-dr/ghq/github.com/aygp-dr/2048-heuristics/tests/test-2048.scm"
+  source-line: 91
+  source-form: (test-eqv "Left move shifts values" 2 (board-ref new-board 1 0))
+Test end:
+  result-kind: pass
+  actual-value: 2
+  expected-value: 2
+Test begin:
+  test-name: "Right move shifts values"
+  source-file: "/home/dsp-dr/ghq/github.com/aygp-dr/2048-heuristics/tests/test-2048.scm"
+  source-line: 95
+  source-form: (test-eqv "Right move shifts values" 2 (board-ref new-board 0 3))
+Test end:
+  result-kind: pass
+  actual-value: 2
+  expected-value: 2
+Test begin:
+  test-name: "Right move shifts values"
+  source-file: "/home/dsp-dr/ghq/github.com/aygp-dr/2048-heuristics/tests/test-2048.scm"
+  source-line: 96
+  source-form: (test-eqv "Right move shifts values" 2 (board-ref new-board 1 3))
+Test end:
+  result-kind: pass
+  actual-value: 2
+  expected-value: 2
+Test begin:
+  test-name: "Up move shifts values"
+  source-file: "/home/dsp-dr/ghq/github.com/aygp-dr/2048-heuristics/tests/test-2048.scm"
+  source-line: 100
+  source-form: (test-eqv "Up move shifts values" 4 (board-ref new-board 0 1))
+Test end:
+  result-kind: pass
+  actual-value: 4
+  expected-value: 4
+Test begin:
+  test-name: "Up move merges equal values"
+  source-file: "/home/dsp-dr/ghq/github.com/aygp-dr/2048-heuristics/tests/test-2048.scm"
+  source-line: 101
+  source-form: (test-eqv "Up move merges equal values" 0 (board-ref new-board 1 1))
+Test end:
+  result-kind: pass
+  actual-value: 0
+  expected-value: 0
+Test begin:
+  test-name: "Down move shifts values"
+  source-file: "/home/dsp-dr/ghq/github.com/aygp-dr/2048-heuristics/tests/test-2048.scm"
+  source-line: 105
+  source-form: (test-eqv "Down move shifts values" 4 (board-ref new-board 3 1))
+Test end:
+  result-kind: pass
+  actual-value: 4
+  expected-value: 4
+Test begin:
+  test-name: "Down move merges equal values"
+  source-file: "/home/dsp-dr/ghq/github.com/aygp-dr/2048-heuristics/tests/test-2048.scm"
+  source-line: 106
+  source-form: (test-eqv "Down move merges equal values" 0 (board-ref new-board 0 1))
+Test end:
+  result-kind: pass
+  actual-value: 0
+  expected-value: 0
+Group end: move-board
+Group begin: valid-move
+Test begin:
+  test-name: "Empty board has no valid moves"
+  source-file: "/home/dsp-dr/ghq/github.com/aygp-dr/2048-heuristics/tests/test-2048.scm"
+  source-line: 111
+  source-form: (test-assert "Empty board has no valid moves" (null? (get-valid-moves board)))
+Test end:
+  result-kind: pass
+  actual-value: #t
+Test begin:
+  test-name: "Board with single tile has right and down moves"
+  source-file: "/home/dsp-dr/ghq/github.com/aygp-dr/2048-heuristics/tests/test-2048.scm"
+  source-line: 116
+  source-form: (test-assert "Board with single tile has right and down moves" (lset= eq? (get-valid-moves board) (quote (right down))))
+Test end:
+  result-kind: pass
+  actual-value: #t
+Test begin:
+  test-name: "Board with two tiles has all moves"
+  source-file: "/home/dsp-dr/ghq/github.com/aygp-dr/2048-heuristics/tests/test-2048.scm"
+  source-line: 121
+  source-form: (test-assert "Board with two tiles has all moves" (lset= eq? (get-valid-moves board) (quote (up down left right))))
+Test end:
+  result-kind: pass
+  actual-value: #t
+Group end: valid-move
+Group begin: count-empty
+Test begin:
+  test-name: "Empty board has 16 empty cells"
+  source-file: "/home/dsp-dr/ghq/github.com/aygp-dr/2048-heuristics/tests/test-2048.scm"
+  source-line: 128
+  source-form: (test-eqv "Empty board has 16 empty cells" 16 (count-empty board))
+Test end:
+  result-kind: pass
+  actual-value: 16
+  expected-value: 16
+Test begin:
+  test-name: "Board with one tile has 15 empty cells"
+  source-file: "/home/dsp-dr/ghq/github.com/aygp-dr/2048-heuristics/tests/test-2048.scm"
+  source-line: 130
+  source-form: (test-eqv "Board with one tile has 15 empty cells" 15 (count-empty board))
+Test end:
+  result-kind: pass
+  actual-value: 15
+  expected-value: 15
+Group end: count-empty
+Group begin: calculate-monotonicity
+Test begin:
+  test-name: "Monotonic board has good score"
+  source-file: "/home/dsp-dr/ghq/github.com/aygp-dr/2048-heuristics/tests/test-2048.scm"
+  source-line: 140
+  source-form: (test-assert "Monotonic board has good score" (> (calculate-monotonicity board) 0))
+Test end:
+  result-kind: pass
+  actual-value: #t
+Group end: calculate-monotonicity
+Group begin: calculate-uniformity
+Test begin:
+  test-name: "Uniform board scores higher than diverse board"
+  source-file: "/home/dsp-dr/ghq/github.com/aygp-dr/2048-heuristics/tests/test-2048.scm"
+  source-line: 158
+  source-form: (test-assert "Uniform board scores higher than diverse board" (> uniform-score diverse-score))
+Test end:
+  result-kind: pass
+  actual-value: #t
+Group end: calculate-uniformity
+Group begin: evaluate-move
+Test begin:
+  test-name: "Empty evaluator works"
+  source-file: "/home/dsp-dr/ghq/github.com/aygp-dr/2048-heuristics/tests/test-2048.scm"
+  source-line: 169
+  source-form: (test-assert "Empty evaluator works" (number? (evaluate-move board (quote left) (quote empty))))
+Test end:
+  result-kind: pass
+  actual-value: #t
+Test begin:
+  test-name: "Monotonicity evaluator works"
+  source-file: "/home/dsp-dr/ghq/github.com/aygp-dr/2048-heuristics/tests/test-2048.scm"
+  source-line: 171
+  source-form: (test-assert "Monotonicity evaluator works" (number? (evaluate-move board (quote left) (quote monotonicity))))
+Test end:
+  result-kind: pass
+  actual-value: #t
+Test begin:
+  test-name: "Uniformity evaluator works"
+  source-file: "/home/dsp-dr/ghq/github.com/aygp-dr/2048-heuristics/tests/test-2048.scm"
+  source-line: 173
+  source-form: (test-assert "Uniformity evaluator works" (number? (evaluate-move board (quote left) (quote uniformity))))
+Test end:
+  result-kind: pass
+  actual-value: #t
+Test begin:
+  test-name: "Greedy evaluator works"
+  source-file: "/home/dsp-dr/ghq/github.com/aygp-dr/2048-heuristics/tests/test-2048.scm"
+  source-line: 175
+  source-form: (test-assert "Greedy evaluator works" (number? (evaluate-move board (quote left) (quote greedy))))
+Test end:
+  result-kind: pass
+  actual-value: #t
+Group end: evaluate-move
+Group begin: apply-strategy
+Test begin:
+  test-name: "EMR strategy returns valid move"
+  source-file: "/home/dsp-dr/ghq/github.com/aygp-dr/2048-heuristics/tests/test-2048.scm"
+  source-line: 184
+  source-form: (test-assert "EMR strategy returns valid move" (member (apply-strategy board (quote (empty monotonicity random))) (quote (up down left right))))
+Test end:
+  result-kind: pass
+  actual-value: (right)
+Group end: apply-strategy
+Group begin: add-random-tile
+Test begin:
+  test-name: "Random tile was added"
+  source-file: "/home/dsp-dr/ghq/github.com/aygp-dr/2048-heuristics/tests/test-2048.scm"
+  source-line: 193
+  source-form: (test-assert "Random tile was added" (not (= 16 (count-empty board))))
+Test end:
+  result-kind: pass
+  actual-value: #t
+Test begin:
+  test-name: "Another random tile was added"
+  source-file: "/home/dsp-dr/ghq/github.com/aygp-dr/2048-heuristics/tests/test-2048.scm"
+  source-line: 198
+  source-form: (test-eqv "Another random tile was added" (- empty-before 1) (count-empty board))
+Test end:
+  result-kind: pass
+  actual-value: 14
+  expected-value: 14
+Group end: add-random-tile
+Group end: 2048-heuristics
+# of expected passes      42

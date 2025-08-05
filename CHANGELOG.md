@@ -5,6 +5,52 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.0] - 2025-08-05
+
+### Added
+- **Interactive CLI mode** (`bin/play-2048`) - Play 2048 in the terminal with:
+  - Real-time colored board display
+  - WASD and vim-style (HJKL) controls
+  - Undo functionality with history
+  - Score and move tracking
+  - New game and quit options
+- **Performance benchmarking system** (`src/benchmark.scm`) with:
+  - Time and memory measurement
+  - Statistical analysis (average, min, max, stddev)
+  - Strategy comparison tables
+  - Detailed per-game analysis
+  - Quick (--quick) and full (--full) benchmark modes
+- **Expectimax AI strategy** - Advanced lookahead algorithm that:
+  - Evaluates expected values of moves
+  - Considers tile spawn probabilities (90% for 2, 10% for 4)
+  - Uses depth-3 search by default
+  - Combines empty cells, monotonicity, and uniformity heuristics
+- **Save/Load functionality** (`src/save-load.scm`) featuring:
+  - Save game states to disk
+  - Resume previously saved games
+  - List all saved games with scores
+  - Auto-save on game over
+  - Command-line options for save management
+
+### Changed
+- Updated Makefile with new targets:
+  - `make benchmark` - Run standard benchmarks
+  - `make benchmark-quick` - Quick 5-game benchmark
+  - `make benchmark-full` - Full 20-game benchmark
+- Enhanced `apply-strategy` to support both symbolic strategies and advanced AI
+- Added `play-with-strategy` function for complete game simulation
+
+### Fixed
+- Fixed test import issue by adding SRFI-11 for `let-values` support
+- All 42 tests now pass successfully
+- Resolved test framework compatibility issues
+
+### Technical Improvements
+- Better code organization with modular components
+- Enhanced strategy evaluation system
+- Improved game state management
+- More robust error handling
+
 ## [0.1.0] - 2025-08-05
 
 ### Added

@@ -211,25 +211,34 @@
 
 (define (apply-strategy board strategy)
   "Apply strategy (list of evaluators) to choose best move"
-  (let ((moves (get-valid-moves board)))
-    (if (null? moves)
-        #f  ; Game over
-        (let loop ((evaluators strategy)
-                   (candidates moves))
-          (if (or (null? (cdr evaluators)) (= 1 (length candidates)))
-              ;; Terminal evaluator or single candidate
-              (if (eq? (car evaluators) 'random)
-                  (list-ref candidates (random (length candidates)))
-                  (car candidates))
-              ;; Apply current evaluator
-              (let* ((evaluator (car evaluators))
-                     (scores (map (lambda (move)
-                                   (cons move (evaluate-move board move evaluator)))
-                                 candidates))
-                     (best-score (apply max (map cdr scores)))
-                     (best-moves (map car (filter (lambda (p) (= (cdr p) best-score))
-                                                 scores))))
-                (loop (cdr evaluators) best-moves)))))))
+  ;; Handle special AI strategies
+  (cond
+    ((eq? strategy 'expectimax)
+     (expectimax-strategy board))
+    ((symbol? strategy)
+     ;; Convert single symbol to list for compatibility
+     (apply-strategy board (list strategy)))
+    (else
+     ;; Original hierarchical strategy logic
+     (let ((moves (get-valid-moves board)))
+       (if (null? moves)
+           #f  ; Game over
+           (let loop ((evaluators strategy)
+                      (candidates moves))
+             (if (or (null? (cdr evaluators)) (= 1 (length candidates)))
+                 ;; Terminal evaluator or single candidate
+                 (if (eq? (car evaluators) 'random)
+                     (list-ref candidates (random (length candidates)))
+                     (car candidates))
+                 ;; Apply current evaluator
+                 (let* ((evaluator (car evaluators))
+                        (scores (map (lambda (move)
+                                      (cons move (evaluate-move board move evaluator)))
+                                    candidates))
+                        (best-score (apply max (map cdr scores)))
+                        (best-moves (map car (filter (lambda (p) (= (cdr p) best-score))
+                                                    scores))))
+                   (loop (cdr evaluators) best-moves)))))))))
 
 ;;; Spawn new tiles
 
@@ -250,7 +259,96 @@
              (val (if (< (random 10) 9) 2 4)))
         (board-set! board (car pos) (cdr pos) val)))))
 
+;;; Advanced AI Strategies
+
+(define (expectimax-score board depth)
+  "Expectimax algorithm for 2048 - evaluates expected value of moves"
+  (if (zero? depth)
+      (+ (count-empty board) 
+         (* 10 (calculate-monotonicity board))
+         (* 5 (calculate-uniformity board)))
+      (let ((valid-moves (get-valid-moves board)))
+        (if (null? valid-moves)
+            0  ; Game over
+            (apply max
+                   (map (lambda (move)
+                          (let-values (((new-board score) (move-board board move)))
+                            (+ score
+                               (expectimax-chance new-board (- depth 1)))))
+                        valid-moves))))))
+
+(define (expectimax-chance board depth)
+  "Calculate expected value for chance nodes (random tile placement)"
+  (let ((empty-cells (get-empty-cells board))
+        (total-score 0))
+    (if (null? empty-cells)
+        0
+        (begin
+          ;; Average over all possible tile placements
+          (for-each
+           (lambda (pos)
+             ;; 90% chance of 2, 10% chance of 4
+             (let ((board-2 (board-copy board))
+                   (board-4 (board-copy board)))
+               (board-set! board-2 (car pos) (cdr pos) 2)
+               (board-set! board-4 (car pos) (cdr pos) 4)
+               (set! total-score 
+                     (+ total-score
+                        (* 0.9 (expectimax-score board-2 depth))
+                        (* 0.1 (expectimax-score board-4 depth))))))
+           empty-cells)
+          (/ total-score (length empty-cells))))))
+
+(define (expectimax-strategy board)
+  "Choose move using expectimax algorithm with depth 3"
+  (let ((valid-moves (get-valid-moves board))
+        (best-score -inf.0)
+        (best-move #f))
+    (for-each
+     (lambda (move)
+       (let-values (((new-board score) (move-board board move)))
+         (let ((total-score (+ score (expectimax-chance new-board 2))))
+           (when (> total-score best-score)
+             (set! best-score total-score)
+             (set! best-move move)))))
+     valid-moves)
+    best-move))
+
 ;;; Game runner
+
+(define (play-with-strategy board strategy score)
+  "Play a complete game with given strategy and return final statistics"
+  (let ((current-board (board-copy board))
+        (current-score score)
+        (moves 0)
+        (max-tile 0))
+    ;; Add initial tiles if empty
+    (when (= (count-empty current-board) 16)
+      (add-random-tile! current-board)
+      (add-random-tile! current-board))
+    
+    ;; Play until game over
+    (let loop ()
+      (let ((move (apply-strategy current-board strategy)))
+        (if move
+            (begin
+              (let-values (((new-board move-score) (move-board current-board move)))
+                (set! current-board new-board)
+                (set! current-score (+ current-score move-score))
+                (set! moves (+ moves 1)))
+              (add-random-tile! current-board)
+              ;; Track max tile
+              (vector-for-each
+               (lambda (i row)
+                 (vector-for-each
+                  (lambda (j cell)
+                    (when (> cell max-tile)
+                      (set! max-tile cell)))
+                  row))
+               current-board)
+              (loop))
+            ;; Game over - return statistics
+            (list current-board current-score moves max-tile)))))
 
 (define (play-game strategy max-moves)
   "Play a game using given strategy"

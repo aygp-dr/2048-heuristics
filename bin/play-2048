@@ -1,0 +1,202 @@
+#!/usr/local/bin/guile \
+!#
+
+;;; Interactive 2048 Game
+;;; Play 2048 in the terminal with arrow key controls
+
+(use-modules (ice-9 rdelim)
+             (ice-9 format)
+             (srfi srfi-11))
+
+;; Load the main game
+(load "../2048-heuristics.scm")
+
+;; ANSI color codes
+(define (color-code n)
+  (cond
+    ((= n 0) "")
+    ((= n 2) "\x1b[37m")      ; White
+    ((= n 4) "\x1b[96m")      ; Bright Cyan
+    ((= n 8) "\x1b[93m")      ; Bright Yellow
+    ((= n 16) "\x1b[92m")     ; Bright Green
+    ((= n 32) "\x1b[94m")     ; Bright Blue
+    ((= n 64) "\x1b[95m")     ; Bright Magenta
+    ((= n 128) "\x1b[91m")    ; Bright Red
+    ((= n 256) "\x1b[33m")    ; Yellow
+    ((= n 512) "\x1b[31m")    ; Red
+    ((= n 1024) "\x1b[35m")   ; Magenta
+    ((= n 2048) "\x1b[32m")   ; Green
+    (else "\x1b[36m")))       ; Cyan for higher
+
+(define RESET "\x1b[0m")
+(define CLEAR "\x1b[2J\x1b[H")
+
+;; Display the board with colors
+(define (display-board-interactive board score moves)
+  (display CLEAR)
+  (display "\n╔══════════════════════════════════════╗\n")
+  (display "║           2048 GAME                  ║\n")
+  (display "╠══════════════════════════════════════╣\n")
+  (format #t "║  Score: ~6d   Moves: ~4d       ║\n" score moves)
+  (display "╠══════════════════════════════════════╣\n")
+  
+  ;; Display board
+  (for-each
+   (lambda (row)
+     (display "║  ")
+     (vector-for-each
+      (lambda (i cell)
+        (let ((color (color-code cell)))
+          (if (zero? cell)
+              (display "    ")
+              (format #t "~a~4d~a" color cell RESET))
+          (display " ")))
+      row)
+     (display " ║\n"))
+   (vector->list board))
+  
+  (display "╚══════════════════════════════════════╝\n")
+  (display "\nControls: W/A/S/D or H/J/K/L (vim-style)\n")
+  (display "         Q to quit, U to undo\n")
+  (display "         N for new game\n")
+  (display "\nMove: "))
+
+;; Game state history for undo
+(define game-history '())
+(define max-history 10)
+
+(define (push-history! board score moves)
+  (set! game-history (cons (list (board-copy board) score moves) game-history))
+  (when (> (length game-history) max-history)
+    (set! game-history (take game-history max-history))))
+
+(define (pop-history!)
+  (if (null? game-history)
+      #f
+      (let ((state (car game-history)))
+        (set! game-history (cdr game-history))
+        state)))
+
+;; Get user input
+(define (get-move)
+  (let ((input (read-char)))
+    (case input
+      ((#\w #\W) 'up)
+      ((#\s #\S) 'down)
+      ((#\a #\A) 'left)
+      ((#\d #\D) 'right)
+      ;; Vim-style controls
+      ((#\k #\K) 'up)
+      ((#\j #\J) 'down)
+      ((#\h #\H) 'left)
+      ((#\l #\L) 'right)
+      ;; Other commands
+      ((#\q #\Q) 'quit)
+      ((#\u #\U) 'undo)
+      ((#\n #\N) 'new)
+      (else #f))))
+
+;; Check for win/loss
+(define (check-win board)
+  (let ((win #f))
+    (vector-for-each
+     (lambda (i row)
+       (vector-for-each
+        (lambda (j cell)
+          (when (>= cell 2048)
+            (set! win #t)))
+        row))
+     board)
+    win))
+
+(define (game-over? board)
+  (null? (get-valid-moves board)))
+
+;; Main game loop
+(define (play-game)
+  (let loop ((board (make-board))
+             (score 0)
+             (moves 0)
+             (message ""))
+    ;; Initialize board with two tiles
+    (when (zero? moves)
+      (add-random-tile! board)
+      (add-random-tile! board))
+    
+    ;; Display current state
+    (display-board-interactive board score moves)
+    (unless (string-null? message)
+      (display message)
+      (display "\nMove: "))
+    
+    ;; Check win/loss conditions
+    (cond
+      ((check-win board)
+       (display "\n🎉 Congratulations! You've reached 2048! 🎉\n")
+       (display "Continue playing? (y/n): ")
+       (if (eq? (read-char) #\y)
+           (loop board score moves "")
+           (display "\nThanks for playing!\n")))
+      
+      ((game-over? board)
+       (display "\n💀 Game Over! No more valid moves. 💀\n")
+       (format #t "Final Score: ~d\n" score)
+       (display "Play again? (y/n): ")
+       (if (eq? (read-char) #\y)
+           (play-game)
+           (display "\nThanks for playing!\n")))
+      
+      (else
+       ;; Get and process move
+       (let ((move (get-move)))
+         (case move
+           ((quit)
+            (display "\nThanks for playing!\n"))
+           
+           ((new)
+            (display "\nStarting new game...\n")
+            (play-game))
+           
+           ((undo)
+            (let ((prev-state (pop-history!)))
+              (if prev-state
+                  (apply loop (append prev-state '("Undone!")))
+                  (loop board score moves "No more undos available!"))))
+           
+           ((up down left right)
+            (if (memq move (get-valid-moves board))
+                (let-values (((new-board move-score) (move-board board move)))
+                  (push-history! board score moves)
+                  (add-random-tile! new-board)
+                  (loop new-board (+ score move-score) (+ moves 1) ""))
+                (loop board score moves "Invalid move!")))
+           
+           (else
+            (loop board score moves "Invalid input!"))))))))
+
+;; Configure terminal for single character input
+(define (setup-terminal)
+  (system "stty -icanon -echo min 1"))
+
+(define (restore-terminal)
+  (system "stty sane"))
+
+;; Main entry point
+(define (main args)
+  (display CLEAR)
+  (display "Welcome to 2048!\n")
+  (display "Press any key to start...\n")
+  
+  (catch #t
+    (lambda ()
+      (setup-terminal)
+      (read-char)  ; Wait for key press
+      (play-game)
+      (restore-terminal))
+    (lambda (key . args)
+      (restore-terminal)
+      (display "\n")
+      (apply throw key args))))
+
+;; Run the game
+(main (command-line))

@@ -6,6 +6,7 @@
 
 (use-modules (srfi srfi-64)  ; Test framework
              (srfi srfi-1)   ; List operations
+             (srfi srfi-11)  ; let-values
              (srfi srfi-43)  ; Vector operations
              (ice-9 match))  ; Pattern matching
 

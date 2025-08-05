@@ -110,23 +110,17 @@ plot-results: ## Generate plots from analysis results
 .PHONY: benchmark
 benchmark: build ## Run performance benchmark with multiple strategies
 	@echo "$(GREEN)Running benchmark suite...$(NC)"
-	@echo "#!/usr/bin/env guile" > benchmark.scm
-	@echo '!#' >> benchmark.scm
-	@cat $(SCRIPT) >> benchmark.scm
-	@echo "" >> benchmark.scm
-	@echo "(define (benchmark-strategy name strategy runs)" >> benchmark.scm
-	@echo "  (format #t \"~%Testing ~a...~%\" name)" >> benchmark.scm
-	@echo "  (let ((scores '()))" >> benchmark.scm
-	@echo "    (do ((i 0 (+ i 1))) ((= i runs))" >> benchmark.scm
-	@echo "      (set! scores (cons (play-game strategy 1000) scores)))" >> benchmark.scm
-	@echo "    (let ((avg (/ (apply + scores) runs)))" >> benchmark.scm
-	@echo "      (format #t \"Average score over ~a runs: ~a~%\" runs avg))))" >> benchmark.scm
-	@echo "" >> benchmark.scm
-	@echo "(benchmark-strategy \"EMR\" '(empty monotonicity random) 5)" >> benchmark.scm
-	@echo "(benchmark-strategy \"MR\" '(monotonicity random) 5)" >> benchmark.scm
-	@echo "(benchmark-strategy \"Random\" '(random) 5)" >> benchmark.scm
-	@$(GUILE) benchmark.scm
-	@rm -f benchmark.scm
+	@cd src && $(GUILE) benchmark.scm
+
+.PHONY: benchmark-quick
+benchmark-quick: build ## Run quick performance benchmark
+	@echo "$(GREEN)Running quick benchmark suite...$(NC)"
+	@cd src && $(GUILE) benchmark.scm --quick
+
+.PHONY: benchmark-full
+benchmark-full: build ## Run full performance benchmark
+	@echo "$(GREEN)Running full benchmark suite...$(NC)"
+	@cd src && $(GUILE) benchmark.scm --full
 
 .PHONY: install
 install: build ## Install the script to ~/.local/bin

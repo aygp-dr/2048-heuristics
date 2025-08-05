@@ -9,12 +9,17 @@ An implementation of the 2048 game with AI heuristics based on the research pape
 ## Features
 
 - Complete 2048 game mechanics in Scheme (GNU Guile)
+- **Interactive CLI mode** for playing the game manually
 - Multiple AI heuristic strategies:
   - Empty-cell maximization
   - Monotonicity (ordered tiles)
   - Uniformity (similar tiles grouped)
   - Greedy scoring
+  - Random moves
+  - **Expectimax** (advanced lookahead AI)
 - Strategy composition framework
+- **Performance benchmarking system**
+- **Save/Load functionality** for game states
 - Statistical analysis tools for strategy comparison
 
 ## Installation
@@ -32,15 +37,63 @@ guile 2048-heuristics.scm
 
 ## Usage
 
+### Interactive Play
+
+Play 2048 manually in your terminal:
+
+```bash
+# Start interactive game
+./bin/play-2048
+
+# Controls:
+# - W/A/S/D or H/J/K/L: Move tiles
+# - U: Undo last move
+# - N: New game
+# - Q: Quit
+```
+
 ### Playing with AI
 
 ```scheme
 ;; Run a game with the EMR strategy (Empty, Monotonicity, Random)
 (play-game '(empty monotonicity random) 100)
 
+;; Try the advanced Expectimax AI
+(play-game 'expectimax 100)
+
 ;; Try other strategies
 (play-game '(greedy empty monotonicity random) 100)
 (play-game '(monotonicity random) 100)
+```
+
+### Performance Benchmarking
+
+Compare strategy performance:
+
+```bash
+# Run standard benchmark (10 games per strategy)
+make benchmark
+
+# Quick benchmark (5 games per strategy)
+make benchmark-quick
+
+# Full benchmark (20 games per strategy)
+make benchmark-full
+```
+
+### Save/Load Games
+
+Save and resume games:
+
+```bash
+# Play with save/load support
+./src/save-load.scm
+
+# List saved games
+./src/save-load.scm --list
+
+# Load a specific saved game
+./src/save-load.scm --load mysave
 ```
 
 ### Strategy Analysis
