@@ -292,5 +292,7 @@
   ;; (play-game '(monotonicity random) 100)
   )
 
-;; Run demo
-(demo)
+;; Run demo only if this script is executed directly (not loaded)
+(when (and (> (length (command-line)) 0) 
+           (string-suffix? "2048-heuristics.scm" (car (command-line))))
+  (demo))

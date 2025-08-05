@@ -9,8 +9,11 @@
              (srfi srfi-43)  ; Vector operations
              (ice-9 match))  ; Pattern matching
 
-;; Load the main program
+;; Load the main program (without running demo)
+(define old-command-line command-line)
+(set! command-line (lambda () '()))  ; Temporarily disable command-line to prevent demo
 (load "../2048-heuristics.scm")
+(set! command-line old-command-line)
 
 ;; Configure test suite
 (test-begin "2048-heuristics")
@@ -26,10 +29,13 @@
     (test-eqv "Each row has 4 columns" 4 
               (vector-length (vector-ref board 0)))
     (test-assert "All cells are initially 0"
-                 (vector-every 
-                  (lambda (i row) 
-                    (vector-every zero? row))
-                  board))))
+                 (let ((all-zero #t))
+                   (vector-for-each
+                    (lambda (i row)
+                      (unless (vector-every zero? row)
+                        (set! all-zero #f)))
+                    board)
+                   all-zero))))
 
 (test-group "board-access"
   (let ((board (make-board)))
@@ -51,9 +57,14 @@
 ;;; Core game mechanics tests
 
 (test-group "slide-row"
+  ;; Test sliding with merging
   (let ((row (vector 0 2 2 0)))
-    (test-equal "Slide left" #(2 2 0 0) (slide-row row 'left))
-    (test-equal "Slide right" #(0 0 2 2) (slide-row row 'right))))
+    (test-equal "Slide left merges adjacent" #(4 0 0 0) (slide-row row 'left))
+    (test-equal "Slide right merges adjacent" #(0 0 0 4) (slide-row row 'right)))
+  ;; Test sliding without merging
+  (let ((row (vector 0 2 4 0)))
+    (test-equal "Slide left no merge" #(2 4 0 0) (slide-row row 'left))
+    (test-equal "Slide right no merge" #(0 0 2 4) (slide-row row 'right))))
 
 (test-group "merge-adjacent"
   (test-equal "Empty list" '() (merge-adjacent '()))
@@ -186,8 +197,15 @@
       (test-eqv "Another random tile was added"
                 (- empty-before 1) (count-empty board)))))
 
-;; Finish test suite
-(test-end "2048-heuristics")
-
-;; Display test summary
-(test-exit)
+;; Display test summary and finish test suite
+(let ((runner (test-runner-current)))
+  (test-end "2048-heuristics")
+  (let ((pass (test-runner-pass-count runner))
+        (fail (test-runner-fail-count runner))
+        (skip (test-runner-skip-count runner)))
+    (format #t "~%Test Results:~%")
+    (format #t "  Passed: ~a~%" pass)
+    (format #t "  Failed: ~a~%" fail)
+    (format #t "  Skipped: ~a~%" skip)
+    (when (> fail 0)
+      (exit 1))))

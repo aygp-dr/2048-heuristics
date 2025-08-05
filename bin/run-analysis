@@ -1,15 +1,34 @@
-#!/bin/sh
-# Run distribution analysis with auto-compilation disabled
+#!/usr/local/bin/bash
+# Run 2048 Strategy Analysis
+# This is a more efficient version that runs the strategy analysis script
 
-# Ensure we're using Guile 3
-GUILE=guile3
+set -e  # Exit on error
 
-# Disable auto-compilation
-export GUILE_AUTO_COMPILE=0
-
-# Get the directory containing this script
+# Make sure we're in the project directory
 SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
 PROJ_DIR="$(dirname "$SCRIPT_DIR")"
+cd "$PROJ_DIR"
 
-# Run the analysis
-cd "$PROJ_DIR" && exec $GUILE -L . src/distribution-analysis.scm
+echo "2048 Heuristic Strategy Analysis"
+echo "================================"
+echo
+
+# Check if guile is installed
+if ! command -v guile &> /dev/null; then
+    echo "Error: GNU Guile is not installed or not in PATH"
+    echo "Please install Guile 3.0+ to run this analysis"
+    exit 1
+fi
+
+# Run the strategy analysis (more efficient than distribution analysis)
+echo "Running strategy analysis..."
+if [ -f "strategy-analysis.scm" ]; then
+    ./strategy-analysis.scm
+else
+    echo "Error: strategy-analysis.scm not found"
+    exit 1
+fi
+
+echo
+echo "Analysis complete!"
+echo "Check the generated results files for detailed statistics."

@@ -1,37 +1,37 @@
-#!/bin/sh
-# Generate plots from strategy analysis results
+#!/usr/local/bin/bash
+# Generate visualization plots from analysis results
 
-# Ensure we're using Guile 3
-GUILE=guile3
+set -e
 
-# Disable auto-compilation
-export GUILE_AUTO_COMPILE=0
-
-# Get the directory containing this script
+# Make sure we're in the project directory
 SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
 PROJ_DIR="$(dirname "$SCRIPT_DIR")"
-
-# Change to project directory
 cd "$PROJ_DIR"
 
-# Make sure gnuplot is installed
+# Check if gnuplot is available
 if ! command -v gnuplot >/dev/null 2>&1; then
-  echo "Error: gnuplot is not installed. Please install it first."
-  exit 1
+    echo "Error: gnuplot is required for plot generation"
+    echo "Please install gnuplot to generate visualizations"
+    exit 1
 fi
 
-# Generate data files from CSV results
-echo "Generating plot data..."
-$GUILE -L . src/generate-plot-data.scm
+echo "Generating 2048 Strategy Analysis Plots"
+echo "======================================="
 
-# Generate plots with gnuplot
-echo "Generating plots..."
-gnuplot src/plot-results.gp
-
-# Check if the plot was created successfully
-if [ -f "strategy-comparison.png" ]; then
-  echo "Plot generated successfully: strategy-comparison.png"
+# Check if plot script exists
+if [ -f "plot-results.gp" ]; then
+    echo "Running gnuplot to generate visualizations..."
+    gnuplot plot-results.gp
+    
+    # Check if plots were created
+    if [ -f "strategy-comparison.png" ]; then
+        echo "✓ Generated strategy-comparison.png"
+    else
+        echo "Warning: strategy-comparison.png was not created"
+    fi
+    
+    echo "Plot generation complete!"
 else
-  echo "Error: Failed to generate plot."
-  exit 1
+    echo "Error: plot-results.gp not found"
+    exit 1
 fi
