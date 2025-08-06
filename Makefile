@@ -9,6 +9,8 @@ SCRIPT := 2048-heuristics.scm
 COMPILED := 2048-heuristics.go
 INSTALL_DIR := $(HOME)/.local/bin
 PROGRAM_NAME := 2048-heuristics
+PROJECT_NAME := 2048-heuristics
+PROJECT_ROOT := $(shell pwd)
 
 # Colors for output
 GREEN := \033[0;32m
@@ -191,6 +193,29 @@ profile: build ## Run with profiling enabled
 .PHONY: repl
 repl: ## Start a REPL (alias for run-interactive)
 	@$(MAKE) run-interactive
+
+.PHONY: dev
+dev: ## Start development environment with tmux and Emacs
+	@echo "$(GREEN)Starting development environment...$(NC)"
+	@PROJECT_NAME=$(PROJECT_NAME) PROJECT_ROOT=$(PROJECT_ROOT) bin/dev-session
+
+.PHONY: dev-attach
+dev-attach: ## Attach to existing development session
+	@if tmux has-session -t $(PROJECT_NAME) 2>/dev/null; then \
+		tmux attach-session -t $(PROJECT_NAME); \
+	else \
+		echo "$(RED)No session found. Run 'make dev' first.$(NC)"; \
+		exit 1; \
+	fi
+
+.PHONY: dev-kill
+dev-kill: ## Kill the development session
+	@if tmux has-session -t $(PROJECT_NAME) 2>/dev/null; then \
+		tmux kill-session -t $(PROJECT_NAME); \
+		echo "$(GREEN)Session killed.$(NC)"; \
+	else \
+		echo "$(YELLOW)No session to kill.$(NC)"; \
+	fi
 
 .PHONY: all
 all: deps build test ## Run all checks, build, and test

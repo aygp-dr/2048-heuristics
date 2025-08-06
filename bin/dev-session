@@ -1,0 +1,128 @@
+#!/usr/bin/env bash
+# dev-session - Start a named tmux session with project-specific Emacs configuration
+# for Scheme development with Geiser, Guile3, Org mode, Tramp, and Paredit support
+
+set -euo pipefail
+
+# Load environment variables
+if [ -f .envrc ]; then
+    source .envrc
+fi
+
+# Use environment variables or defaults
+PROJECT_NAME="${PROJECT_NAME:-2048-heuristics}"
+PROJECT_ROOT="${PROJECT_ROOT:-$(pwd)}"
+SESSION_NAME="${1:-$PROJECT_NAME}"
+EMACS_CONFIG="${PROJECT_ROOT}/${PROJECT_NAME}.el"
+
+# Colors for output
+GREEN='\033[0;32m'
+YELLOW='\033[0;33m'
+RED='\033[0;31m'
+NC='\033[0m' # No Color
+
+# Function to print colored messages
+print_msg() {
+    local color=$1
+    shift
+    echo -e "${color}$*${NC}"
+}
+
+# Check if tmux is installed
+if ! command -v tmux &> /dev/null; then
+    print_msg "$RED" "Error: tmux is not installed"
+    print_msg "$YELLOW" "Install with: sudo apt-get install tmux (Debian/Ubuntu)"
+    print_msg "$YELLOW" "           or: brew install tmux (macOS)"
+    exit 1
+fi
+
+# Check if Emacs is installed
+if ! command -v emacs &> /dev/null; then
+    print_msg "$RED" "Error: Emacs is not installed"
+    print_msg "$YELLOW" "Install with: sudo apt-get install emacs (Debian/Ubuntu)"
+    print_msg "$YELLOW" "           or: brew install emacs (macOS)"
+    exit 1
+fi
+
+# Check if Emacs configuration exists
+if [ ! -f "$EMACS_CONFIG" ]; then
+    print_msg "$RED" "Error: Emacs configuration not found at $EMACS_CONFIG"
+    print_msg "$YELLOW" "Run 'make setup' to create the configuration"
+    exit 1
+fi
+
+# Check if session already exists
+if tmux has-session -t "$SESSION_NAME" 2>/dev/null; then
+    print_msg "$YELLOW" "Session '$SESSION_NAME' already exists"
+    read -p "Attach to existing session? (y/n) " -n 1 -r
+    echo
+    if [[ $REPLY =~ ^[Yy]$ ]]; then
+        print_msg "$GREEN" "Attaching to session '$SESSION_NAME'..."
+        exec tmux attach-session -t "$SESSION_NAME"
+    else
+        print_msg "$YELLOW" "Use 'tmux attach -t $SESSION_NAME' to attach later"
+        exit 0
+    fi
+fi
+
+# Create new tmux session
+print_msg "$GREEN" "Creating tmux session '$SESSION_NAME' for project '$PROJECT_NAME'..."
+
+# Start tmux session with Emacs in detached mode
+tmux new-session -d -s "$SESSION_NAME" -c "$PROJECT_ROOT" \
+    "emacs -nw -Q -l $EMACS_CONFIG"
+
+# Get the TTY of the tmux pane
+PANE_TTY=$(tmux list-panes -t "$SESSION_NAME" -F "#{pane_tty}" | head -1)
+
+# Create additional windows for different tasks
+tmux new-window -t "$SESSION_NAME:2" -n "repl" -c "$PROJECT_ROOT" \
+    "guile3 -l 2048-heuristics.scm"
+
+tmux new-window -t "$SESSION_NAME:3" -n "shell" -c "$PROJECT_ROOT"
+
+tmux new-window -t "$SESSION_NAME:4" -n "tests" -c "$PROJECT_ROOT" \
+    "bash -c 'echo \"Run: make test or guile3 tests/test-2048.scm\"; bash'"
+
+# Set up pane layout for main window (optional: split for code and REPL)
+tmux select-window -t "$SESSION_NAME:1"
+tmux split-window -h -t "$SESSION_NAME:1" -c "$PROJECT_ROOT" \
+    "guile3 --listen"
+
+# Resize panes for better layout
+tmux resize-pane -t "$SESSION_NAME:1.0" -x 60%
+
+# Display session information
+print_msg "$GREEN" "✓ Tmux session '$SESSION_NAME' created successfully!"
+print_msg "$YELLOW" ""
+print_msg "$YELLOW" "Session Information:"
+print_msg "$YELLOW" "  Session Name: $SESSION_NAME"
+print_msg "$YELLOW" "  Project Root: $PROJECT_ROOT"
+print_msg "$YELLOW" "  Emacs Config: $EMACS_CONFIG"
+print_msg "$YELLOW" "  Pane TTY: $PANE_TTY"
+print_msg "$YELLOW" ""
+print_msg "$YELLOW" "Windows:"
+print_msg "$YELLOW" "  1:emacs  - Emacs with Scheme development environment"
+print_msg "$YELLOW" "  2:repl   - Guile REPL with game loaded"
+print_msg "$YELLOW" "  3:shell  - Shell for running commands"
+print_msg "$YELLOW" "  4:tests  - Test runner environment"
+print_msg "$YELLOW" ""
+print_msg "$GREEN" "Commands:"
+print_msg "$GREEN" "  Attach to session:  tmux attach -t $SESSION_NAME"
+print_msg "$GREEN" "  List windows:       tmux list-windows -t $SESSION_NAME"
+print_msg "$GREEN" "  Kill session:       tmux kill-session -t $SESSION_NAME"
+print_msg "$GREEN" ""
+print_msg "$GREEN" "Emacs Keybindings (Scheme mode):"
+print_msg "$GREEN" "  C-c C-p  - Switch to REPL"
+print_msg "$GREEN" "  C-c C-k  - Compile buffer"
+print_msg "$GREEN" "  C-c C-r  - Eval region"
+print_msg "$GREEN" "  C-c C-e  - Eval last expression"
+print_msg "$GREEN" "  C-c C-d  - Show documentation"
+
+# Ask if user wants to attach now
+echo
+read -p "Attach to session now? (y/n) " -n 1 -r
+echo
+if [[ $REPLY =~ ^[Yy]$ ]]; then
+    exec tmux attach-session -t "$SESSION_NAME"
+fi
